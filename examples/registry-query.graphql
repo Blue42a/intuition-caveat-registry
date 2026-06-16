@@ -1,0 +1,62 @@
+# Canonical read query for the Caveat Enforcer Registry
+# Endpoint: https://mainnet.intuition.sh/v1/graphql
+#
+# Field names below were introspected against the live Intuition GraphQL schema and
+# the query shape verified to execute (atoms key on `term_id`; a triple's economic
+# weight lives on its `term { total_assets }`; FOR vs AGAINST signal are `positions`
+# / `term` and `counter_positions` / `counter_term`).
+#
+# Returns every enforcer — the subject of an `is a → ERC-7710 Caveat Enforcer` triple —
+# ranked by Signal (total assets staked FOR the core triple), with the dispute weight
+# (counter-Signal) and every other claim made about it. Everything a wallet needs to
+# populate a caveat picker, in one query.
+
+query CaveatEnforcerRegistry($classTermId: String!, $isAPredicateTermId: String!) {
+  triples(
+    where: {
+      predicate_id: { _eq: $isAPredicateTermId }
+      object_id:    { _eq: $classTermId }
+    }
+    order_by: { term: { total_assets: desc } }   # rank by Signal strength
+  ) {
+    # The subject is the Enforcer TYPE atom (`T —is a→ Caveat Enforcer`), e.g.
+    # "ERC20TransferAmountEnforcer". `term_id` is its permanent on-chain id.
+    subject {
+      term_id
+      label                                       # Enforcer Type name, e.g. ERC20TransferAmountEnforcer
+
+      # Every claim asserted about this TYPE = its triples as subject:
+      # restricts | has terms schema | source at | composes with | conflicts with | complements
+      as_subject_triples {
+        predicate { label }
+        object    { term_id label }
+        term         { total_assets }             # Signal FOR this specific claim
+        counter_term { total_assets }             # counter-Signal (dispute) on it
+      }
+
+      # Deployments of this type (the CAIP-10 addresses) point back via `implements`,
+      # carrying chain + per-address audit claims. This returns ALL triples where the
+      # type is the object; filter client-side for predicate.label == "implements"
+      # (or add a nested predicate filter here if the live schema supports it).
+      as_object_triples {
+        subject   { term_id label }               # Deployment atom: caip10:eip155:{chainId}:{address}
+        predicate { label }                        # keep only "implements" rows
+      }
+    }
+
+    # Headline Signal on the "is a Caveat Enforcer" claim itself
+    term         { total_assets }                 # community endorsement
+    counter_term { total_assets }                 # dispute weight (SCHEMA.md §9 Q4)
+    positions_aggregate { aggregate { count } }   # how many distinct stakers
+  }
+}
+
+# Variables — the two well-known atom ids, published in the registry README once minted:
+# {
+#   "classTermId":        "<term_id of the 'ERC-7710 Caveat Enforcer' atom>",
+#   "isAPredicateTermId": "<term_id of the 'is a' predicate atom>"
+# }
+#
+# A wallet integrating the registry needs only these two ids — no other
+# Intuition-specific knowledge. The same pattern Intuition's own `has tag` predicate
+# uses today.
