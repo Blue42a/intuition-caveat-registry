@@ -148,25 +148,31 @@ structured description:
 {
   "enforcer": "ERC20TransferAmountEnforcer",
   "encoding": "abi.encodePacked",
+  "status": "verified",
+  "termsLength": 52,
   "fields": [
-    { "name": "token",     "type": "address" },
-    { "name": "maxAmount", "type": "uint256" }
+    { "name": "allowedContract", "type": "address", "offset": 0 },
+    { "name": "maxTokens",       "type": "uint256", "offset": 20 }
   ]
 }
 ```
 
 - `encoding` distinguishes `abi.encodePacked` (most enforcers) from `abi.encode`.
-- `fields` is the ordered parameter list. For packed encoding, byte offsets follow
-  deterministically from the type widths, so they are intentionally **not** hardcoded
-  here — deriving them in code is safer than asserting offsets in the schema.
+- `fields` is the ordered parameter list. For packed encoding the seed now records the
+  byte `offset` and total `termsLength` of each field, read directly from the enforcer's
+  `getTermsInfo` in the framework source. (Offsets are also derivable from the type
+  widths; recording the verified value lets an integrator decode `terms` without
+  re-deriving.)
 - A wallet integrating the registry reads this atom and can build the `terms` blob for
   a caveat without reading the enforcer source.
 
-> **Honesty note:** the `fields` lists in `seed/enforcers.json` are populated from the
-> published enforcer parameters where confident, and marked `"status": "to-verify"`
-> where the exact field set should be confirmed against source before relying on it.
-> The schema *shape* is the deliverable; exhaustively verified field lists for all 32
-> are a follow-up, not claimed complete here.
+> **Verification status:** the `fields` lists in `seed/enforcers.json` are populated from
+> each enforcer's `getTermsInfo` in the framework source — **31 of 32** carry
+> `"status": "verified"` (exact fields, types, byte offsets, and total `termsLength`).
+> The sole exception is **`SpecificActionERC20TransferBatchEnforcer`**, marked
+> `"status": "partial"`: its `TermsData` is a compound struct captured at a high level,
+> with the exact field breakdown still to confirm against source. No other field list is
+> outstanding.
 
 ---
 
@@ -261,11 +267,12 @@ who says so?"*
 ## 9. Open questions (mission-listed) — proposed answers
 
 **Q1 — Canonical list of MetaMask enforcer addresses per chain?**
-Not yet published as a single source. Proposal: seed by **enforcer name + category +
-terms schema** now (chain-independent facts), and attach `deployed on` + the CAIP-10
-address per chain as each deployment is confirmed from the framework's
-`documents/Deployments.md`. The name-level facts are reusable across every chain the
-enforcer lands on.
+**Answered.** The framework publishes all 32 enforcer addresses (plus the DelegationManager
+and DeleGator impls) in `documents/Deployments.md`. The seed now attaches a CAIP-10
+**Enforcer Deployment** atom per enforcer; every address was confirmed to have live bytecode
+on Intuition testnet (13579) via `eth_getCode`, and is CREATE2-deterministic (`SimpleFactory`),
+so the same address applies on Intuition mainnet (1155) — to be re-confirmed against the
+mainnet RPC before reliance. The name-level facts remain reusable across every chain.
 
 **Q2 — `terms` ABI as raw JSON atom or IPFS-pinned?**
 Proposal: **inline JSON atom** for the compact schemas (all 32 official enforcers fit

@@ -60,3 +60,7 @@ These are high-confidence `conflicts with` triples worth seeding so the UI can w
 
 All claims above are proposals to be **staked**, not assertions. The registry surfaces the Signal
 weight (FOR via the triple, AGAINST via the counter-triple); the community owns the final picture.
+
+> Consistent with the rest of the registry: high Signal on a composability triple means the community
+> **recognizes** the combination as sound — not that it is **safe**. Same recognized-not-safe stance as
+> the `is a Caveat Enforcer` claims; the UI surfaces stake weight, never a hardcoded safety verdict.
