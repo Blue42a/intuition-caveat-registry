@@ -1,5 +1,7 @@
 # ERC-7710 Caveat Enforcer Registry — on Intuition
 
+**▶ Live demo: https://intuition-caveat-registry.vercel.app** · read-only, generated from the seed.
+
 A permissionless, community-curated registry of **ERC-7710 caveat enforcers**, represented as
 **Intuition atoms, triples, and Signal-backed attestations** — so any wallet, dapp, or agent can
 query *"what does this enforcer restrict, is this deployment verified, what does it compose
@@ -24,9 +26,8 @@ npm run dry-run:seed   # → 193 atoms / 275 triples projected, with cost estima
 
 ## Live demo
 
-A read-only registry UI (browse / detail / composability / mock write previews), generated
-entirely from the seed. **Deploy:** import this repo into Vercel with **root directory `app/`**
-(config in [`app/vercel.json`](./app/vercel.json)) — or run locally:
+**https://intuition-caveat-registry.vercel.app** — a read-only registry UI (browse / detail /
+composability / mock write previews), generated entirely from the seed. Or run locally:
 
 ```bash
 cd app && npm install && npm run dev
