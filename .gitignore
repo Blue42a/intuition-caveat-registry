@@ -1,2 +1,5 @@
 scratch.txt
 .terms-source-extract.txt
+app/node_modules/
+app/dist/
+app/*.tsbuildinfo

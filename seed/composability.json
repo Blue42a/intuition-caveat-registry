@@ -1,0 +1,25 @@
+{
+  "$comment": "Machine-readable composability source for the registry UI and the dry-run seed. Mirrors COMPOSABILITY.md. relationships[] become attestable triples (subject predicate object); presets[] become a preset atom + 'includes enforcer' triples. Every name MUST exist in enforcers.json (validated by scripts/validate-seed.mjs).",
+  "predicates": {
+    "complements": "Each constrains a different dimension; combining tightens scope with no overlap.",
+    "composes with": "Safe to use together and commonly do; may overlap but do not contradict.",
+    "conflicts with": "Redundant or contradictory — one subsumes the other, or they can deadlock a redemption."
+  },
+  "relationships": [
+    { "subject": "TimestampEnforcer", "predicate": "complements", "object": "ERC20TransferAmountEnforcer", "reason": "a *when* bound + a *how much* bound" },
+    { "subject": "AllowedTargetsEnforcer", "predicate": "complements", "object": "ERC20TransferAmountEnforcer", "reason": "*where* vs *how much*" },
+    { "subject": "AllowedTargetsEnforcer", "predicate": "complements", "object": "AllowedMethodsEnforcer", "reason": "*which contract* vs *which selector*" },
+    { "subject": "LimitedCallsEnforcer", "predicate": "complements", "object": "AllowedMethodsEnforcer", "reason": "*how often* vs *which selector*" },
+    { "subject": "RedeemerEnforcer", "predicate": "complements", "object": "ERC20StreamingEnforcer", "reason": "*who may redeem* vs *how much is unlocked*" },
+    { "subject": "AllowedTargetsEnforcer", "predicate": "composes with", "object": "AllowedMethodsEnforcer", "reason": "target + method scoping commonly used together" },
+    { "subject": "LimitedCallsEnforcer", "predicate": "conflicts with", "object": "NonceEnforcer", "reason": "overlapping reuse throttles — usually redundant" },
+    { "subject": "ERC20StreamingEnforcer", "predicate": "conflicts with", "object": "ERC20PeriodTransferEnforcer", "reason": "two different release models on one token allowance contradict" },
+    { "subject": "ExactCalldataEnforcer", "predicate": "conflicts with", "object": "AllowedCalldataEnforcer", "reason": "exact-match subsumes partial-match" },
+    { "subject": "ExactExecutionEnforcer", "predicate": "conflicts with", "object": "AllowedTargetsEnforcer", "reason": "exact execution already fixes the target" }
+  ],
+  "presets": [
+    { "name": "Time-gated token allowance", "intent": "Move up to N of token T, but only within a validity window.", "members": ["ERC20TransferAmountEnforcer", "TimestampEnforcer"], "optional": ["AllowedTargetsEnforcer"] },
+    { "name": "Scoped agent action", "intent": "Call only these methods on only these contracts, at most K times.", "members": ["AllowedTargetsEnforcer", "AllowedMethodsEnforcer", "LimitedCallsEnforcer"] },
+    { "name": "Streaming payout to a fixed redeemer", "intent": "Funds stream over time, and only a specific account may redeem.", "members": ["ERC20StreamingEnforcer", "RedeemerEnforcer"] }
+  ]
+}
