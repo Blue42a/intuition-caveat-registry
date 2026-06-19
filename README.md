@@ -1,73 +1,76 @@
-# Caveat Enforcer Registry — schema-first foundation
+# ERC-7710 Caveat Enforcer Registry — on Intuition
 
-A permissionless, community-curated registry of **ERC-7710 caveat enforcers**,
-represented as **Intuition atoms, triples, and Signal-backed attestations** (`$TRUST` is
-the economic mechanism behind Signal) — so any wallet, dapp, or agent can query *"what
-does this enforcer restrict, has this deployment been audited, what does it compose
+A permissionless, community-curated registry of **ERC-7710 caveat enforcers**, represented as
+**Intuition atoms, triples, and Signal-backed attestations** — so any wallet, dapp, or agent can
+query *"what does this enforcer restrict, is this deployment verified, what does it compose
 with?"* through the Intuition GraphQL API, with no central gatekeeper.
 
-This repository is the **schema-first foundation** for that registry: the ontology, the
-seed data, and the canonical read query. It is the piece the
-[mission](https://github.com/intuition-box/Caveats-Enforcers/issues/1) explicitly left
-to the candidate — *"the candidate is expected to define what composability means"* and
-*"`SCHEMA.md` must be clear enough for a contributor to submit an enforcer ... without
-reading the dapp code."*
+What makes this entry different is not the UI — it's that **the UI is generated from a
+source-verified ontology, and the ontology is checked by scripts anyone can run.**
 
-## Why schema-first
+```
+npm run validate       # → PASS (158 checks): 32 types, 64 deployments,
+                       #   terms offsets sum to termsLength, no mainnet over-claim
+npm run dry-run:seed   # → 193 atoms / 275 triples projected, with cost estimate (no key)
+```
 
-The dapp (browse / detail / submit / attest / composability UI) is the visible
-deliverable, but it is only as good as the model underneath it. If the ontology is
-wrong, every triple minted on mainnet is wrong and expensive to unwind. So the model
-comes first, in the open, reviewable on its own terms before any UI is built.
+- **Source-verified terms.** Every enforcer's `terms` layout — fields, solidity types, **byte
+  offsets**, total length — is extracted from its `getTermsInfo` in the framework source. 31/32
+  fully verified, 1 honestly marked `partial`. See [`PROVENANCE.md`](./PROVENANCE.md).
+- **On-chain-checked deployments.** All 32 addresses confirmed to hold live bytecode on Intuition
+  testnet (13579) via `eth_getCode`; mainnet (1155) flagged unverified (CREATE2-deterministic) — no over-claim.
+- **Composability as data**, not hardcoded UI: `complements` / `composes with` / `conflicts with`
+  as attestable triples ([`COMPOSABILITY.md`](./COMPOSABILITY.md), [`seed/composability.json`](./seed/composability.json)).
+
+## Live demo
+
+A read-only registry UI (browse / detail / composability / mock write previews), generated
+entirely from the seed. **Deploy:** import this repo into Vercel with **root directory `app/`**
+(config in [`app/vercel.json`](./app/vercel.json)) — or run locally:
+
+```bash
+cd app && npm install && npm run dev
+```
+
+**What it shows** (walkthrough): browse + filter all 32 types → a detail page rendering the
+**verified terms layout with byte offsets** and per-chain CAIP-10 deployments with `eth_getCode`
+badges → a composability tab of presets and conflict/complement relations → mock submit/attest
+flows that render (and **export as JSON**) the exact atoms/triples a real write would create. A
+header toggle flips the data source between the seed and a **live Intuition GraphQL** query (0
+rows until seeded — the adapter is real, the data isn't yet).
 
 ## Contents
 
 ```
-.
-├── SCHEMA.md                      # the ontology — atom types, predicate vocabulary,
-│                                  #   restriction categories, terms-schema format,
-│                                  #   Signal semantics, and reasoned answers
-│                                  #   to the mission's four open questions
-├── seed/
-│   └── enforcers.json             # the 32 official MetaMask Delegation Toolkit
-│                                  #   enforcers, with restriction categories and
-│                                  #   terms schemas (confident / to-verify flagged)
-└── examples/
-    └── registry-query.graphql     # canonical read query a wallet uses to fetch
-                                   #   the registry, ranked by Signal
+SCHEMA.md              # ontology — Type vs Deployment, predicates, terms-schema format, Signal semantics
+PROVENANCE.md          # generated — per-enforcer source / getTermsInfo / address / bytecode chain
+COMPOSABILITY.md       # composability model + use-case presets
+INTEGRATION.md         # canonical GraphQL query + how a wallet consumes the registry
+LAUNCH_CHECKLIST.md    # what's done vs gated on alignment + a funded wallet
+seed/
+  enforcers.json       # 32 types, verified terms schemas (offsets+lengths), 64 CAIP-10 deployments
+  composability.json   # machine-readable relationships + presets (source of truth for the UI)
+scripts/
+  validate-seed.mjs    # rigor checks (offsets sum to length, deployment completeness, no over-claim)
+  dry-run-seed.mjs     # projects the exact atom/triple set + cost estimate, no private key
+  gen-provenance.mjs   # regenerates PROVENANCE.md from the seed
+app/                   # Vite + React + TS read-only dapp, generated from seed/*.json
+examples/registry-query.graphql
 ```
 
 ## The one-line model
 
-> An ERC-7710 enforcer has a **Type** atom (the implementation, e.g.
-> `ERC20TransferAmountEnforcer`) and one or more **Deployment** atoms (the deployed
-> addresses, each a CAIP-10). The Type carries reusable semantics — what it restricts,
-> its `terms` schema, composability; each Deployment carries chain-specific facts —
-> which chain, and whether *that address* is audited (`Deployment —implements→ Type`).
-> Every fact is a **triple**, and **Signal** (stake for, counter-stake against) on those
-> triples is the confidence and dispute weight. Provenance — *who says this audit
-> happened* — uses triple-on-triple claims. The dapp renders the graph; it never
-> hardcodes the facts.
+> An enforcer has a **Type** atom (e.g. `ERC20TransferAmountEnforcer`) and one or more
+> **Deployment** atoms (CAIP-10 addresses). The Type carries reusable semantics — what it
+> restricts, its `terms` schema, composability; each Deployment carries chain-specific facts
+> (`Deployment —implements→ Type`). Every fact is a triple, and **Signal** (stake for,
+> counter-stake against) is the confidence/dispute weight. The dapp renders the graph; it never
+> hardcodes the facts. Headline = **"recognized," not "safe."**
 
-See [`SCHEMA.md`](./SCHEMA.md) for the full ontology and
-[`examples/registry-query.graphql`](./examples/registry-query.graphql) for how to read it.
+## Status / scope (honest)
 
-## Status
-
-**v0.1 proposal.** Predicate atoms are not yet minted on mainnet — the schema defines
-what gets minted once it's agreed. `seed/enforcers.json` covers all 32 official
-enforcers; terms-schema field lists are marked `confident` or `to-verify` so nothing is
-asserted beyond what's been checked. This is deliberately **not** the full dapp — it is
-the foundation the dapp stands on, shared for review first.
-
-## Scope boundaries (honest)
-
-- **Addresses are not seeded.** MetaMask hasn't published a canonical per-chain address
-  list (mission open question Q1); addresses attach per deployment from the framework's
-  `documents/Deployments.md`. The name/category/terms facts are chain-independent and
-  reusable.
-- **Terms field lists:** 8 verified-confident, 24 marked `to-verify` against source.
-  The schema *shape* is the deliverable; exhaustive verification is a fast follow.
-- **GraphQL query** field names were introspected against the live mainnet schema and
-  the shape verified to execute; the two well-known atom ids it takes as variables are
-  filled once the predicates are minted.
+- **Schema + seed + validation + read-only dapp: done.** `npm run validate` is green.
+- **Deliberately gated until alignment + a funded wallet:** real wallet writes (submit/attest are
+  mocked but export the exact payload), and the mainnet seeding *run* (`dry-run:seed` projects it).
+- Predicate/class atoms aren't minted yet — the schema defines what gets minted once agreed, so
+  nothing is minted into the wrong shape before the team weighs in. See `LAUNCH_CHECKLIST.md`.

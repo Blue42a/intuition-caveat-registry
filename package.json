@@ -1,0 +1,12 @@
+{
+  "name": "intuition-caveat-registry",
+  "private": true,
+  "version": "0.1.0",
+  "description": "ERC-7710 caveat enforcer registry on Intuition — source-verified ontology + read-only dapp",
+  "type": "module",
+  "scripts": {
+    "validate": "node scripts/validate-seed.mjs",
+    "dry-run:seed": "node scripts/dry-run-seed.mjs",
+    "provenance": "node scripts/gen-provenance.mjs"
+  }
+}

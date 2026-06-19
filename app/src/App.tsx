@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { enforcers, composability, allRestrictions, relationsFor, sourceUrl } from "./data";
 import { submitTriples, attestTriple, type TripleView } from "./triples";
+import { buildSubmitPayload, downloadJson } from "./exporter";
+import { fetchLiveEnforcers, type LiveResult } from "./graphql";
 import type { Enforcer } from "./types";
 
 type Tab = "browse" | "composability";
@@ -18,6 +20,7 @@ export default function App() {
         <p>A read-only registry UI generated entirely from a source-verified ontology
           (<code>seed/enforcers.json</code>) — verified terms layouts, byte offsets, and
           per-chain deployments. Write flows are mocked; nothing is signed.</p>
+        <LiveCheck />
       </header>
 
       <div className="tabs">
@@ -187,6 +190,9 @@ function WriteMocks({ e }: { e: Enforcer }) {
           <option value={13579}>13579 (testnet)</option>
           <option value={1155}>1155 (mainnet)</option>
         </select>
+        <button className="back" onClick={() => downloadJson(`${e.name}-submit-${chainId}.json`, buildSubmitPayload(e, chainId))}>
+          Export write payload (JSON)
+        </button>
       </div>
       <Triples list={submit} />
 
@@ -202,6 +208,25 @@ function Triples({ list }: { list: TripleView[] }) {
 }
 function Triple({ t }: { t: TripleView }) {
   return <span className="mono">({t.s}) <span className="p">—[{t.p}]→</span> ({t.o})</span>;
+}
+
+function LiveCheck() {
+  const [mode, setMode] = useState<"seed" | "live">("seed");
+  const [res, setRes] = useState<LiveResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  async function goLive() {
+    setMode("live"); setLoading(true);
+    try { setRes(await fetchLiveEnforcers()); } catch (e) { setRes({ count: 0, rows: [], note: "fetch failed: " + String(e) }); }
+    setLoading(false);
+  }
+  return (
+    <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+      data source:{" "}
+      <button className="back" style={{ padding: "2px 8px" }} onClick={() => { setMode("seed"); setRes(null); }} disabled={mode === "seed"}>seed ({enforcers.length})</button>{" "}
+      <button className="back" style={{ padding: "2px 8px" }} onClick={goLive}>live GraphQL</button>
+      {mode === "live" && <span> — {loading ? "querying mainnet…" : `${res?.count ?? 0} on-chain · ${res?.note ?? ""}`}</span>}
+    </div>
+  );
 }
 
 function ComposabilityView({ onSelect }: { onSelect: (n: string) => void }) {
