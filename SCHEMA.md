@@ -295,10 +295,11 @@ its own threshold. The data stays neutral; the policy lives at the edge.
 
 ## 10. What this artifact is — and is not
 
-**Is:** a proposed ontology + a 32-enforcer seed (`seed/enforcers.json`) + a canonical
-read query (`examples/registry-query.graphql`). Enough that a contributor can mint the
-same triples by hand and a wallet can read them.
+**Is:** a proposed ontology + a source-verified 32-enforcer seed (`seed/enforcers.json` —
+terms layouts with byte offsets + per-chain CAIP-10 deployments) + a canonical read query
+(`examples/registry-query.graphql`) + a live read-only dapp generated from the seed
+(`app/`). Enough that a contributor can mint the same triples by hand and a wallet can read them.
 
-**Is not:** the full dapp (browse/detail/submit/attest/composability UI), the minted
-on-chain predicates, or an exhaustively source-verified terms list for all 32. Those
-are the build-out the mission funds; this is the schema-first foundation it stands on.
+**Is not (yet):** the minted on-chain predicates, the real wallet-write flows (submit/attest
+are mocked previews that export the exact triples), or the mainnet seeding run. Those are
+gated on schema alignment and a funded wallet — the build-out the mission funds.
